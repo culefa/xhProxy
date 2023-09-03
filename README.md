@@ -13,7 +13,7 @@ xhProxy是用于拦截浏览器 XMLHttpRequest 对象的轻量库，它可以在
 - CDN引入
 
   ```html
-  <script src="https://cdn.jsdelivr.net/gh/culefa/xhProxy@da7f33349989e89fe839dbb4fb1c111eaf48ace2/dist/xhProxy.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/culefa/xhProxy@3b19feb39652ae41863f3db96e2fb6f99aaffb9b/dist/xhProxy.min.js"></script>
   ```
 
   引入后会有一个名为"xhProxy"的全局对象，通过它可以调用API，如`xhProxy.hook(hookObject)`
