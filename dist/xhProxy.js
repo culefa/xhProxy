@@ -674,7 +674,7 @@ const xhProxy = ((window) => {
       }
 
 
-
+/*
       set responseType(nv) {
         this[keyResponseType] = nv;
         return true;
@@ -687,6 +687,7 @@ const xhProxy = ((window) => {
         }
         return super.responseType;
       }
+      */
 
       get responseText() {
         if (super.readyState === 4 && super.status !== 0) {
