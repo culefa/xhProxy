@@ -39,6 +39,8 @@ const xhProxy = ((window) => {
   const keyLastReadyState = Symbol();
   const keyLastStatus = Symbol();
   const keyWaiter = Symbol();
+  const keyPretentTrustedEvent = Symbol();
+  const keyResponseType = Symbol();
 
 
   const promiseHelper = (f) => Promise.resolve().then(f).catch(console.warn);
@@ -163,7 +165,27 @@ const xhProxy = ((window) => {
     };
 
 
+    const fFunction = (xhr, f) => {
 
+      if (typeof f !== 'function') return f;
+
+
+      const g = function (...args) {
+        if (args[0] instanceof Event && args[0][keyPretentTrustedEvent]) args[0] = new Proxy(args[0], fProxyHandler);
+        f.apply(this, args);
+
+      }
+
+      newFnMap.set(f, g);
+      oriFnMap.set(g, f);
+
+      // g.getOriginal = ()=>{
+      //   return oriFnMap.get(g)
+      // }
+
+      return g;
+
+    }
 
     const fWaitOnRequestPlease = (xhr, f) => {
 
@@ -171,11 +193,12 @@ const xhProxy = ((window) => {
 
 
 
-      const g = function () {
+      const g = function (...args) {
+        if (args[0] instanceof Event && args[0][keyPretentTrustedEvent]) args[0] = new Proxy(args[0], fProxyHandler);
 
         xhr[keyWaiter] = xhr[keyWaiter].then(() => new Promise(waiterResolve => {
 
-          f.apply(this, arguments);
+          f.apply(this, args);
           waiterResolve();
 
         }));
@@ -194,6 +217,16 @@ const xhProxy = ((window) => {
 
     }
 
+    const fProxyHandler = {
+      get(target, prop, receiver) {
+
+        let v = target[prop];
+        if (typeof v === 'function') return () => { };
+        if (prop === 'isTrusted') return true;
+        return v;
+
+      }
+    };
 
     const fOnReadyStateChange = (xhr, f) => {
       if (typeof f !== 'function') return f;
@@ -203,15 +236,16 @@ const xhProxy = ((window) => {
 
       xhr[keyDone] = 0;
 
-      const g = function () {
+      const g = function (...args) {
+        if (args[0] instanceof Event && args[0][keyPretentTrustedEvent]) args[0] = new Proxy(args[0], fProxyHandler);
         xhr[keyWaiter] = xhr[keyWaiter].then(() => new Promise(waiterResolve => {
 
 
           try {
-            if (typeof xhr[keyDone] !== 1) {
+            if (xhr[keyDone] !== 1 && xhr[keyDone] !== -2) {
               config.readyState = xhr.readyState;
             }
-            if (typeof xhr[keyDone] !== 1) {
+            if (xhr[keyDone] !== 1 && xhr[keyDone] !== -2) {
               config.status = xhr.status;
             }
             // console.log(123)
@@ -219,7 +253,7 @@ const xhProxy = ((window) => {
             if (xhr.readyState === 4 && xhr.status !== 0 && xhr[keyDone] === 0) {
               xhr[keyDone] = 1;
               doResponseCatch = true;
-            } else if (typeof xhr[keyDone] !== 1) {
+            } else if (xhr[keyDone] !== 1 && xhr[keyDone] !== -2) {
               xhr[keyLastReadyState] = xhr.readyState;
               xhr[keyLastStatus] = xhr.status;
             }
@@ -238,14 +272,17 @@ const xhProxy = ((window) => {
                 if (typeof onResponse === 'function' && !hInst.byPassRequest) await promiseHelper(() => onResponse.call(hInst, _xhr, config));
               }
 
-              _xhr[keyDone] = 2;
-              _xhr[keyLastReadyState] = _xhr.readyState;
-              _xhr[keyLastStatus] = _xhr.status;
+              if (xhr[keyDone] !== -2) {
+
+                _xhr[keyDone] = 2;
+                _xhr[keyLastReadyState] = _xhr.readyState;
+                _xhr[keyLastStatus] = _xhr.status;
+              }
 
             })() : Promise.resolve();
 
             p.then(() => {
-              f.apply(this, arguments);
+              f.apply(this, args);
               waiterResolve();
             }).catch(e => {
               console.warn(e);
@@ -387,7 +424,72 @@ const xhProxy = ((window) => {
 
           if (!preventSend) {
             if (doOnResponse && _xhr[keyDone] === -1) _xhr.addEventListener('readystatechange', () => { }, false);
-            if (config.body !== undefined) super.send(config.body); else super.send();
+            if (config.readyState === 4 && config.status === 200) {
+
+
+              const response = config.response;
+
+              let evt;
+
+              evt = new Event("loadstart");
+              evt[keyPretentTrustedEvent] = 1;
+              _xhr.dispatchEvent(evt);
+              await new Promise(resolve => window.setTimeout(resolve));
+
+              _xhr[keyLastReadyState] = 2;
+              _xhr[keyLastStatus] = 0;
+              _xhr[keyDone] = -2;
+              evt = new Event("readystatechange");
+              evt[keyPretentTrustedEvent] = 1;
+              _xhr.dispatchEvent(evt);
+              await new Promise(resolve => window.setTimeout(resolve));
+
+              _xhr[keyLastReadyState] = 3;
+              _xhr[keyLastStatus] = 200;
+              _xhr[keyDone] = -2;
+              evt = new Event("readystatechange");
+              evt[keyPretentTrustedEvent] = 1;
+              _xhr.dispatchEvent(evt);
+              await new Promise(resolve => window.setTimeout(resolve));
+
+              evt = new Event("progress");
+              evt[keyPretentTrustedEvent] = 1;
+              _xhr.dispatchEvent(evt);
+              await new Promise(resolve => window.setTimeout(resolve));
+
+              _xhr.responseType = response.responseType;
+              _xhr.response = response.response;
+              _xhr.responseText = response.responseText;
+
+              _xhr[keyLastReadyState] = 4;
+              _xhr[keyLastStatus] = 200;
+              _xhr[keyDone] = -2;
+              evt = new Event("readystatechange");
+              evt[keyPretentTrustedEvent] = 1;
+              _xhr.dispatchEvent(evt);
+              await new Promise(resolve => window.setTimeout(resolve));
+
+              _xhr[keyLastReadyState] = 4;
+              _xhr[keyLastStatus] = 200;
+              _xhr[keyDone] = -2;
+              evt = new Event("load");
+              evt[keyPretentTrustedEvent] = 1;
+              _xhr.dispatchEvent(evt);
+              await new Promise(resolve => window.setTimeout(resolve));
+
+              _xhr[keyLastReadyState] = 4;
+              _xhr[keyLastStatus] = 200;
+              _xhr[keyDone] = -2;
+              evt = new Event("loadend");
+              evt[keyPretentTrustedEvent] = 1;
+              _xhr.dispatchEvent(evt);
+
+
+
+
+            } else {
+              if (config.body !== undefined) super.send(config.body); else super.send();
+            }
           }
 
         };
@@ -423,6 +525,8 @@ const xhProxy = ((window) => {
           args[1] = fOnReadyStateChange(this, args[1])
         } else if ((args[0] === 'load' || args[0] === 'loadend') && typeof args[1] === 'function') {
           args[1] = fWaitOnRequestPlease(this, args[1]);
+        } else if (args[0] === 'progress' && typeof args[1] === 'function') {
+          args[1] = fFunction(this, args[1])
         }
 
 
@@ -446,7 +550,7 @@ const xhProxy = ((window) => {
       }
 
       get readyState() {
-        return typeof this[keyDone] === 1 ? (this[keyLastReadyState] || 0) : super.readyState;
+        return (this[keyDone] === 1 || this[keyDone] === -2) ? (this[keyLastReadyState] || 0) : super.readyState;
       }
 
 
@@ -457,7 +561,7 @@ const xhProxy = ((window) => {
       }
 
       get status() {
-        return typeof this[keyDone] === 1 ? (this[keyLastStatus] || 0) : super.status;
+        return (this[keyDone] === 1 || this[keyDone] === -2) ? (this[keyLastStatus] || 0) : super.status;
       }
 
 
@@ -515,12 +619,12 @@ const xhProxy = ((window) => {
 
 
       set onprogress(nv) {
-        super.onprogress = nv;
+        super.onprogress = fFunction(nv);
         return true;
       }
 
       get onprogress() {
-        return super.onprogress;
+        return getOriFn(super.onprogress);
       }
 
 
@@ -557,6 +661,21 @@ const xhProxy = ((window) => {
         }
       }
 
+
+
+
+      set responseType(nv) {
+        this[keyResponseType] = nv;
+        return true;
+      }
+
+
+      get responseType() {
+        if (keyResponseType in this) {
+          return this[keyResponseType];
+        }
+        return super.responseType;
+      }
 
       set response(nv) {
         responseMap.set(this, nv)
