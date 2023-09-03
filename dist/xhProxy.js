@@ -586,7 +586,7 @@ const xhProxy = ((window) => {
 
 
       set onload(nv) {
-        super.onload = fWaitOnRequestPlease(nv);
+        super.onload = fWaitOnRequestPlease(this, nv);
         return true;
       }
 
@@ -596,7 +596,7 @@ const xhProxy = ((window) => {
 
 
       set onloadend(nv) {
-        super.onloadend = fWaitOnRequestPlease(nv);
+        super.onloadend = fWaitOnRequestPlease(this, nv);
         return true;
       }
 
@@ -619,7 +619,7 @@ const xhProxy = ((window) => {
 
 
       set onprogress(nv) {
-        super.onprogress = fFunction(nv);
+        super.onprogress = fFunction(this, nv);
         return true;
       }
 
