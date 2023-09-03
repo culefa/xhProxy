@@ -656,11 +656,22 @@ const xhProxy = ((window) => {
           const response = super.response
           responseMap.set(this, response);
           return response;
+        } else if (this[keyLastReadyState] === 4 && this[keyLastStatus] === 200 && this[keyDone] === -2) {
+
+          if (responseMap.has(this)) {
+            return responseMap.get(this);
+          }
+          return null;
         } else {
           return (!this.responseType || this.responseType === 'text') ? "" : null;
         }
       }
 
+
+      set response(nv) {
+        responseMap.set(this, nv)
+        return true;
+      }
 
 
 
@@ -676,12 +687,6 @@ const xhProxy = ((window) => {
         }
         return super.responseType;
       }
-
-      set response(nv) {
-        responseMap.set(this, nv)
-        return true;
-      }
-
 
       get responseText() {
         if (super.readyState === 4 && super.status !== 0) {
