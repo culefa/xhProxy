@@ -151,7 +151,6 @@ xhr.open('GET', 'https://dummyjson.com/products/5', true);
 
 
 xhr.onload = function() {
-console.log(213313, this.status)
   if (this.status >= 200 && this.status < 400) {
     // The request was successful, handle the response.
     console.log(this.response);
