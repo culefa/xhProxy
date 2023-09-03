@@ -13,7 +13,7 @@ xhProxy是用于拦截浏览器 XMLHttpRequest 对象的轻量库，它可以在
 - CDN引入
 
   ```html
-  <script src="https://cdn.jsdelivr.net/gh/culefa/xhProxy@f17fc1ddb778901bea0301bb752a90bf59076971/dist/xhProxy.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/culefa/xhProxy@f57b5b9875747c6defb90cd91cb51d244fd5f31d/dist/xhProxy.min.js"></script>
   ```
 
   引入后会有一个名为"xhProxy"的全局对象，通过它可以调用API，如`xhProxy.hook(hookObject)`
@@ -63,7 +63,7 @@ HookReturnObject 是一个对象，包含了 `unhook`
 取消全局拦截；取消后 `XMLHttpRequest` 将不会再被代理，浏览器原生`XMLHttpRequest` 会恢复到全局变量空间
 
 
-#### 示例
+#### 示例 1
 
 ```javascript
 
@@ -111,4 +111,61 @@ xhProxy.hook({
 
 // 取消拦截
 xhProxy.unhook();
+```
+
+
+#### 示例 2
+
+```js
+
+
+xhProxy.hook({
+
+  onRequest(xhr, config) {
+
+    if (config.url.includes('/5')) {
+    
+      config.readyState = 4;
+      config.status = 200;
+      config.response = {
+        responseType: 'json',
+        response: {
+          test: 6
+        },
+        responseText: ''
+      }
+      
+    }
+
+
+  }
+
+});
+
+
+
+var xhr = new XMLHttpRequest();
+
+// Configure it: GET-request for the URL /api/data
+xhr.open('GET', 'https://dummyjson.com/products/5', true);
+
+
+xhr.onload = function() {
+console.log(213313, this.status)
+  if (this.status >= 200 && this.status < 400) {
+    // The request was successful, handle the response.
+    console.log(this.response);
+  } else {
+    // The request returned an error status.
+    console.error('Server returned an error', this.statusText);
+  }
+};
+
+xhr.onerror = function() {
+  console.error('Request failed.');
+};
+
+// Send the request
+xhr.send();
+
 ```
